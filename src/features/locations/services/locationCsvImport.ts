@@ -26,6 +26,8 @@ import {
   type Region,
 } from '../types';
 
+export const LOCATION_CSV_MAX_ROWS = 1000;
+
 /** CSVエクスポートと同一のヘッダー列（この並びで一致しない場合は取込を中止する） */
 export const LOCATION_CSV_HEADERS = [
   'ID', '拠点名', '地域', '拠点種別', '担当者', '稼働状況',
@@ -176,6 +178,7 @@ export const parseLocationCsvText = (
   const rows: ParsedLocationRow[] = [];
   const errors: LocationImportRowError[] = [];
   let exampleRowCount = 0;
+  let dataRowCount = 0;
 
   for (let i = 1; i < lines.length; i++) {
     // 行全体を trim すると「末尾列が空のタブ区切り行」の区切り文字まで消えて列数が狂うため、
@@ -192,6 +195,11 @@ export const parseLocationCsvText = (
     while (rawColumns.length > expectedColumnCount && rawColumns.at(-1) === '') rawColumns.pop();
     const columns = rawColumns.map(unescapeFormulaGuard);
     if (columns.every(col => col === '')) continue;
+
+    dataRowCount++;
+    if (dataRowCount > LOCATION_CSV_MAX_ROWS) {
+      throw new Error(`拠点CSVは最大${LOCATION_CSV_MAX_ROWS.toLocaleString('en-US')}行まで取り込めます。ファイルを分割してください。`);
+    }
 
     const rowNumber = i + 1;
 
